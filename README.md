@@ -1,2 +1,2 @@
-# inteligencia-artificial
-Respositorio Inteligencia Artifical
+# Ollama-ia-database
+Respositorio Ollama IA Database
