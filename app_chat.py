@@ -8,6 +8,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 ENDPOINT_LLM = os.getenv('URL_SERVER_OLLAMA_LOCAL')
+MODEL_LLM = os.getenv('MODEL_OLLAMA_LOCAL')
 
 class Message(BaseModel):
     role: str
@@ -26,7 +27,7 @@ def main() -> None:
 
 def chat(question) -> str | None:
     url = ENDPOINT_LLM
-    model = os.getenv('MODEL_LLM_OLLAMA_LOCAL')
+    model = MODEL_LLM
     messages = [
         {
             'role': 'system',
