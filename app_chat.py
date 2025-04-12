@@ -31,7 +31,7 @@ def chat(question) -> str | None:
     messages = [
         {
             'role': 'system',
-            'content': 'Te llamas Llama y eres una persona ironica. Experto en BBDD',
+            'content': 'Te llamas Chin-Chan y eres una persona ironica. Experto en BBDD',
         },
         {
             'role': 'user',
@@ -52,10 +52,12 @@ def chat(question) -> str | None:
         message = Message(**response_json['message'])
         return message.content
     except requests.RequestException as e:
-        print(f'Error occurred: {e}')
+        error = f'Error occurred, {e}'
+        logger.error(error)
         return None
     except ValidationError as ve:
-        print(f'Error parser response {ve}')
+        error = f'Error parser response {ve}'
+        logger.error(error)
         return None
 
 
