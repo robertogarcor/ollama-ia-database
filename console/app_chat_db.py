@@ -25,6 +25,7 @@ def main() -> None:
             print('Adios!')
             break
         query_sql = chat(question)
+        print(query_sql)
         try:
             mysql_db = MysqlDatabase()
             response = mysql_db.query(query_sql)
