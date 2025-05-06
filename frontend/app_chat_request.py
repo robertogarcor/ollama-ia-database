@@ -1,7 +1,13 @@
+import datetime
 import os
 import json
 import requests
 import streamlit as st
+from dotenv import load_dotenv
+from streamlit.components.v1 import html
+
+load_dotenv()
+URL_SERVER_FASTAPI_BACKEND=os.getenv("URL_SERVER_FASTAPI_BACKEND")
 
 # Function load and save history file JSON
 HISTORY_FILE = "chat_history_messages.json"
@@ -18,32 +24,18 @@ def save_history(history) -> None:
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
-#Show messages with icons
-def show_message(author: str, message: str) -> None:
+# Function show message html
+def show_message_html(author: str, date_message: datetime, message: str, chat_html) -> str:
     if author == "Tú":
-        st.markdown(
-            f"""
-            <div class='user'>
-                <span>🧑 {message} </span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        chat_html += f"""<div class='user message'>
+                            🧑 <span class='date-message'>{date_message}</span>
+                            <div>{message}</div>
+                        </div>"""
     else:
-        st.markdown(
-            f"""
-            <div class='assistant'>
-                <span>🤖 {message} </span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-def show_message_html(author: str, message: str, chat_html) -> str:
-    if author == "Tú":
-        chat_html += f"<div class='user message'>🧑 {message} </div>"
-    else:
-        chat_html += f"<div class='assistant message'>🤖 {message}</div>"
+        chat_html += f"""<div class='assistant message'>
+                            🤖 <span class='date-message'>{date_message}</span>
+                            <div>{message}</div>
+                        </div>"""
     return chat_html
 
 
@@ -57,23 +49,27 @@ if "history" not in st.session_state:
 
 ##### Page Web #####
 
-st.title("💬 Asistente IA - Tickets Soporte")
+st.set_page_config(page_title="Chat IA - Soporte Tickets", page_icon=None)
+st.title("💬 Asistente IA - Soporte Tickets")
 # Question User Input
-question_user = st.text_input('Escribe tu consulta:', key='uer_input', placeholder='Aqui tu consulta')
+question_user = st.text_area('Escribe tu consulta:', key='user_input', placeholder='Aqui tu consulta', height=80)
+current_date = datetime.datetime.now()
 # If Click Btn Enviar and question user true
 if st.button("Enviar") and question_user:
+    date_question_user = current_date.strftime('%d-%m-%Y %H:%M')
     # Send message to backend FastAPI
     try:
         with st.spinner("Esperando respuesta IA ..."):
             response = requests.post(
-                'http://127.0.0.1:8000/chat',
+                URL_SERVER_FASTAPI_BACKEND + "/chat",
                 json={"message": question_user}
             )
             # Response assistant IA Server
+            date_response = response.json()['date_response']
             response = response.json()['response']
         # Add to History
-        st.session_state.chat_history.append(("Tú", question_user))
-        st.session_state.chat_history.append(("Bot", response))
+        st.session_state.chat_history.append(("Tú", date_question_user, question_user))
+        st.session_state.chat_history.append(("Bot", date_response, response))
         st.session_state.current_response = ""
         # Save History from JSON
         save_history(st.session_state.chat_history)
@@ -93,7 +89,7 @@ st.markdown("""
             overflow-y: auto;
             background-color: transparent;
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Invertir mensajes (últimos arriba) junto con display */
         }
         .user { 
             align-self: flex-end;
@@ -111,16 +107,19 @@ st.markdown("""
         .message {
             max-width: 100%;
             padding: 10px 15px;
-            border-radius: 20px;
+            border-radius: 10px;
             margin: 5px 0;
             font-size: 15px;
             word-wrap: break-word;
         }
+        .date-message {
+            font-size: 0.8em;
+        }
     </style>
 """, unsafe_allow_html=True)
 chat_html = '<div class="chat-container">'
-for author, message in st.session_state.chat_history:
-    chat_html = show_message_html(author, message, chat_html)
+for author, date_message, message in reversed(st.session_state.chat_history):
+    chat_html = show_message_html(author, date_message, message, chat_html)
 chat_html += '</div>'
 st.markdown(chat_html, unsafe_allow_html=True)
 
