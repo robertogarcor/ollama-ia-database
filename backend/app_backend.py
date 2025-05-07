@@ -14,7 +14,7 @@ from db_provider.MysqlDatabase import MysqlDatabase
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    filename='assistant-ia-db.log'
+    filename='backend.log'
 )
 
 load_dotenv()
@@ -60,22 +60,16 @@ def chat_endpoint(msg: Message):
                 print(response_sql)
                 logging.info(response_sql)
                 response_ia = llm.result_sql_to_response(request, response_sql)
-                current_date = datetime.datetime.now()
-                print(response_ia)
-                logging.info(response_ia)
-                return {
-                    'date_response': current_date.strftime('%d-%m-%Y %H:%M'),
-                    'response': response_ia
-                    }
             else:
                 # RESPONSE ERROR QUERY SQL
-                current_date = datetime.datetime.now()
-                response = "No se ha podido procesar la consulta SQL."
-                logging.info(response)
-                return {
-                    'date_response': current_date.strftime('%d-%m-%Y %H:%M'),
-                    'response': response
-                    }
+                response_ia = "No se ha podido procesar la consulta SQL."
+            current_date = datetime.datetime.now()
+            print(response_ia)
+            logging.info(response_ia)
+            return {
+                'date_response': current_date.strftime('%d-%m-%Y %H:%M'),
+                'response': response_ia
+            }
         else:
             # RESPONSE OLLAMA ASSISTANT GENERAL
             response_ia = llm.assistant_chat(request)
@@ -92,42 +86,7 @@ def chat_endpoint(msg: Message):
             'response': "Error al ejecutar la consulta sql."
         }
 
-
-# Point WebSocket Chat IA Assintent
-@app.websocket('/ws/chat')
-async def websocket_chat(websocket: WebSocket):
-    await websocket.accept()
-    # ID for client
-    client_id = str(uuid.uuid4())[:8]
-    logging.info(f'Client [{client_id}] connect OK!')
-    while True:
-        try:
-            # Receiever message
-            data = await websocket.receive_text()
-            # Si receiver message "ping", send responde "pong"
-            if data == 'ping':
-                logging.info('Receiver Message: ping')
-                await websocket.send_text('pong')
-                logging.info('Sending Message: pong')
-            else:
-                print(f'[{client_id}] request:', data)
-                # RESPONSE OLLAMA
-                query_sql = llm.ask_to_sql(data)
-                print(query_sql)
-                mysql_db = MysqlDatabase()
-                response_sql = mysql_db.query(query_sql)
-                print(response_sql)
-                response_ia = llm.result_sql_to_response(data, response_sql)
-                print('Bot IA: ', response_ia)
-                await websocket.send_text(response_ia)
-        except Exception as e:
-            logging.warning(f'Error Unexpected [{client_id}]: {e}')
-        except WebSocketDisconnect:
-            logging.info(f'Disconnected Client [{client_id}]: {e}')
-        finally:
-            logging.info(f'Finishing connection WebSocket! [{client_id}]')
-
-
 # Run Server FastAPI
 if __name__ == "__main__":
     uvicorn.run(app, host=IP_HOST, port=8000, ws_ping_timeout=300)
+
